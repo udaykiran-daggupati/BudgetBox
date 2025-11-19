@@ -1,0 +1,11 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  background: #f5f5f5;
+}
+:root {
+  --brand: #2563eb;
+}
+button:disabled { opacity: 0.6; cursor: not-allowed; }
