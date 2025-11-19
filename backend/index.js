@@ -119,6 +119,8 @@ app.post('/budget/item/delete', async (req, res) => {
 
 app.get('/', (req, res) => res.send('BudgetBox backend is running. Hit /health or /budget'));
 
+app.get('/health', (_req, res) => res.json({ ok: true }));
+
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => console.log(`BudgetBox backend listening on ${PORT}`));
