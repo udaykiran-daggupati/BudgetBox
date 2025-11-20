@@ -10,30 +10,36 @@ export const syncBudget = async (id: string) => {
   const local = await getBudget(id);
   if (!local) return { ok: false, reason: "no-local" };
 
+  // Ensure required fields exist
+  const payload = {
+    ...local,
+    id: local.id,
+    lastEdited: local.lastEdited || Date.now(),
+  };
+
   try {
     const res = await fetch(buildUrl('/budget/sync'), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(local),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
     });
+
     const data = await res.json();
     const server = data.stored;
 
     if (server && (server.lastEdited || 0) > (local.lastEdited || 0)) {
       await saveBudget(server);
-      return { ok: true, merged: 'pulled' };
+      return { ok: true, merged: "pulled" };
     } else {
-      // idempotent push
       await fetch(buildUrl('/budget/sync'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(local),
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
-      return { ok: true, merged: 'pushed' };
+      return { ok: true, merged: "pushed" };
     }
   } catch (e: any) {
-    const reason = e?.message ?? 'network';
-    return { ok: false, reason };
+    return { ok: false, reason: e.message ?? "network" };
   }
 };
 
