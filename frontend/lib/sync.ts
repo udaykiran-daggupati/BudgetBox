@@ -1,33 +1,39 @@
-// frontend/lib/sync.ts
-import axios from "axios";
 import { getBudget, saveBudget } from "./db";
+import { getBackend } from './getBackend';
+// adjust ../ count until it resolves
+// adjust path if needed
+import { buildUrl } from "./db"; // you already have buildUrl in db.ts
 
-const BACKEND = typeof window !== "undefined" && (process.env.NEXT_PUBLIC_BACKEND_URL ?? "") 
-  ? process.env.NEXT_PUBLIC_BACKEND_URL 
-  : "http://localhost:4000";
+const BACKEND = getBackend();
 
 export const syncBudget = async (id: string) => {
   const local = await getBudget(id);
   if (!local) return { ok: false, reason: "no-local" };
 
   try {
-    const res = await axios.post(`${BACKEND}/budget/sync`, local, {
-      headers: { "Content-Type": "application/json" },
+    const res = await fetch(buildUrl('/budget/sync'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(local),
     });
-    const server = res.data.stored;
+    const data = await res.json();
+    const server = data.stored;
 
-    // last-write-wins merge
-    if (server && server.lastEdited > local.lastEdited) {
+    if (server && (server.lastEdited || 0) > (local.lastEdited || 0)) {
       await saveBudget(server);
-      return { ok: true, merged: "pulled" };
+      return { ok: true, merged: 'pulled' };
     } else {
-      // ensure server has our version (idempotent push)
-      await axios.post(`${BACKEND}/budget/sync`, local);
-      return { ok: true, merged: "pushed" };
+      // idempotent push
+      await fetch(buildUrl('/budget/sync'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(local),
+      });
+      return { ok: true, merged: 'pushed' };
     }
   } catch (e: any) {
-    // surface useful reason
-    const reason = e?.response?.data?.error ?? e?.message ?? "network";
+    const reason = e?.message ?? 'network';
     return { ok: false, reason };
   }
 };
+

@@ -21,6 +21,14 @@ export const saveBudget = async (b: Budget) => {
   return b;
 };
 
-export const getBudget = async (id: string) => {
-  return (await store.getItem<Budget>(`budget:${id}`)) ?? null;
+export const getBudget = async (id: string): Promise<Budget | null> => {
+  const data = await store.getItem(`budget:${id}`);
+  return data ? (data as Budget) : null;
 };
+
+export function buildUrl(path: string) {
+  const rawBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
+  const base = rawBase.replace(/\/+$/, ''); // remove trailing slashes
+  const p = path.replace(/^\/+/, '');       // remove leading slashes
+  return `${base}/${p}`;
+}
